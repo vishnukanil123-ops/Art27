@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Art 27 — Publish your art</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<noscript><meta http-equiv="refresh" content="0; url=https://claude.ai/artifact/MyXXp13sPNjZboSwGkfEhy"></noscript>
 <style>
 :root{--bg:#fff;--fg:#111;--mut:#666;--card:#f6f6f6;--bd:#e2e2e2;--red:#d90429;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0c;--fg:#f3f3f3;--mut:#999;--card:#1a1a1a;--bd:#2c2c2c}}
@@ -26,6 +27,12 @@ label{font-size:13px;color:var(--mut)}form,.box{max-width:480px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 </style></head><body>
 <header id="hd"></header><main id="app"></main>
+<script>
+/* ===== SETTINGS ===== */
+const CLAUDE_LINK="https://claude.ai/artifact/MyXXp13sPNjZboSwGkfEhy";
+const USE_CLAUDE_LINK=true; // true = forward visitors to the Claude link (chat updates go live). false = run built-in app here.
+if(USE_CLAUDE_LINK&&window.top===window.self&&!location.search.includes("local")){location.replace(CLAUDE_LINK)}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const LOGO=`<svg width="38" height="38" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#000"/><circle cx="32" cy="32" r="27" fill="none" stroke="#d90429" stroke-width="5"/><text x="32" y="30" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="15" fill="#fff">ART</text><text x="32" y="47" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="17" fill="#d90429">27</text></svg>`;
@@ -92,25 +99,4 @@ const STAT={pending:"ID under review",verified:"ID verified – payment due",pay
 function upiLink(a){const u=S.settings.upi;return u?"upi://pay?pa="+encodeURIComponent(u)+"&pn=Art%2027&am=20&cu=INR&tn="+encodeURIComponent("Art27 fee "+a.id):""}
 function payCard(a){const l=upiLink(a);return `<div class="card" style="margin-top:12px;border-left:6px solid var(--red)"><h3>Pay ₹20 platform fee</h3>${l?`<div class="row" style="align-items:flex-start;gap:20px"><div id="qr" data-l="${esc(l)}" style="background:#fff;padding:8px;border-radius:8px;min-width:196px;min-height:196px"></div><div style="flex:1;min-width:220px"><p>Scan with GPay, PhonePe, Paytm or any UPI app. On mobile, tap:</p><a class="btn" href="${esc(l)}">Pay with GPay / UPI app</a><p class="mut">UPI ID: ${esc(S.settings.upi)} · Amount: ₹20</p></div></div><form onsubmit="return paySub()"><label>After paying, enter the 12-digit UPI transaction ID (UTR)</label><input id="utr" required inputmode="numeric" pattern="[0-9]{12}"><button class="btn k">Submit payment reference</button></form>`:'<p class="mut">Payment details are not set up yet. Please check back soon.</p>'}${note?`<div class="msg">${esc(note)}</div>`:""}</div>`}
 function paySub(){const a=artist(me.id),u=val("utr");if(!/^[0-9]{12}$/.test(u)){note="Enter a valid 12-digit UTR.";render();return false}if(S.artists.some(x=>x.payRef===u&&x.id!==a.id)){note="This reference was already used.";render();return false}a.payRef=u;a.status="paysub";save();return false}
-function setPay(i,ok){const a=artist(i);if(ok){a.status="active";a.paidUntil=Math.max(Date.now(),a.paidUntil||0)+MONTH}else{a.status="verified";a.payRef=""}save()}
-function setUpi(){S.settings.upi=val("upi");save()}
-const artist=id=>S.artists.find(a=>a.id===id),seeker=id=>S.seekers.find(a=>a.id===id);
-const MONTH=30*864e5;
-function artistReg(){const email=val("e").toLowerCase();if(S.artists.some(a=>a.email===email)){note="Email already registered.";render();return false}
- const d=val("idn").replace(/\s/g,"");if(val("t")==="Aadhaar"&&!/^\d{12}$/.test(d)){note="Aadhaar must be 12 digits.";render();return false}
- const a={id:uid(),name:val("n"),email,pw:val("p"),cat:val("c"),city:val("ci"),bio:val("b"),idType:val("t"),idLast4:d.slice(-4),paidUntil:0,status:"pending"};
- S.artists.push(a);me={role:"artist",id:a.id,name:a.name};save();go("artistDash");return false}
-function artistDo(){const a=S.artists.find(x=>x.email===val("e").toLowerCase()&&x.pw===val("p"));if(!a){note="Wrong email or password.";render();return false}me={role:"artist",id:a.id,name:a.name};go("artistDash");return false}
-function seekerReg(){const email=val("e").toLowerCase();if(S.seekers.some(a=>a.email===email)){note="Email already registered.";render();return false}
- const s={id:uid(),name:val("n"),email,pw:val("p")};S.seekers.push(s);me={role:"seeker",id:s.id,name:s.name};save();go("discover");return false}
-function seekerDo(){const a=S.seekers.find(x=>x.email===val("e").toLowerCase()&&x.pw===val("p"));if(!a){note="Wrong email or password.";render();return false}me={role:"seeker",id:a.id,name:a.name};go("discover");return false}
-function adminDo(){if(val("e")===ADMIN.id&&$("p").value===ADMIN.pw){me={role:"admin",id:"admin",name:"Admin"};go("admin")}else{note="Invalid admin credentials.";render()}return false}
-function upl(){const a=artist(me.id);if(!live(a)){note="Your account must be verified and fee paid before uploading.";render();return false}
- S.arts.push({id:uid(),artistId:a.id,title:val("t"),type:val("ty"),link:val("l"),desc:val("d"),status:"pending"});save();go("artistDash");return false}
-function hire(aid){S.hires.push({id:uid(),seekerId:me.id,artistId:aid,event:val("ev"),date:val("dt"),msg:val("ms"),status:"pending"});save();go("requests");return false}
-function renew(){const a=artist(me.id);a.paidUntil=Math.max(Date.now(),a.paidUntil||0)+MONTH;save()}
-const setHire=(i,s)=>{S.hires.find(h=>h.id===i).status=s;save()},setArtist=(i,s)=>{artist(i).status=s;save()},setArt=(i,s)=>{S.arts.find(x=>x.id===i).status=s;save()};
-function render(){nav();const el=document.activeElement;if(el&&/INPUT|TEXTAREA|SELECT/.test(el.tagName)&&el.value)return;$("app").innerHTML=(P[page]||P.home)();const q=$("qr");if(q&&window.QRCode)new QRCode(q,{text:q.dataset.l,width:180,height:180})}
-render();
-(async()=>{try{const db=await claude.use("db");if(!db)return;ref=db.doc("app/state");ref.onSnapshot(s=>{const d=s.data();if(d){S={artists:[],seekers:[],arts:[],hires:[],...d,settings:d.settings||{}}}render()})}catch(e){}})();
-</script></body></html>
+function setPay(i,ok){const a=artist(i);if(ok){a.status="active";a.paidUntil=Math.max(Date.now(),a.paidUntil||0)+MON
