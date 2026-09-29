@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Art 27 — Publish your art</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#fff;--fg:#111;--mut:#666;--card:#f6f6f6;--bd:#e2e2e2;--red:#d90429;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0c;--fg:#f3f3f3;--mut:#999;--card:#1a1a1a;--bd:#2c2c2c}}
+:root[data-theme="dark"]{--bg:#0c0c0c;--fg:#f3f3f3;--mut:#999;--card:#1a1a1a;--bd:#2c2c2c}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+header{position:sticky;top:0;background:#111;color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));flex-wrap:wrap;z-index:5;border-bottom:3px solid var(--red)}
+header a{color:#fff;text-decoration:none;font-size:14px;cursor:pointer;padding:4px 8px;border-radius:6px}header a:hover{background:#333}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;cursor:pointer;margin-right:auto}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:clamp(28px,6vw,46px);line-height:1.1;margin:.2em 0}h2{margin:.2em 0 .6em}
+.hero{background:#111;color:#fff;border-radius:16px;padding:32px 24px;border-left:8px solid var(--red)}
+.hero p{color:#ddd;max-width:560px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.btn{background:var(--red);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px;margin:4px 4px 4px 0}
+.btn.k{background:#111;color:#fff}.btn.o{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+input,select,textarea{width:100%;padding:10px;margin:4px 0 12px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit}
+label{font-size:13px;color:var(--mut)}form,.box{max-width:480px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--red);color:#fff}.tag.g{background:#2a9d4a}.tag.w{background:#888}
+.mut{color:var(--mut);font-size:14px}.msg{padding:10px;border-radius:8px;background:var(--card);border-left:4px solid var(--red);margin:10px 0}
+.thumb{height:90px;border-radius:8px;background:linear-gradient(135deg,#111,var(--red));display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style></head><body>
+<header id="hd"></header><main id="app"></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const LOGO=`<svg width="38" height="38" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#000"/><circle cx="32" cy="32" r="27" fill="none" stroke="#d90429" stroke-width="5"/><text x="32" y="30" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="15" fill="#fff">ART</text><text x="32" y="47" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="17" fill="#d90429">27</text></svg>`;
+const CATS=["Drawing","Caricature","Music","Acting","Instrument","Dance","Other"];
+const ICON={Drawing:"🎨",Caricature:"🖌️",Music:"🎵",Acting:"🎭",Instrument:"🎸",Dance:"💃",Other:"✨"};
+const ADMIN={id:"Admin",pw:"Admin@1234"};
+let S={artists:[],seekers:[],arts:[],hires:[],settings:{}},me=null,page="home",arg=null,note="",ref=null;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const $=id=>document.getElementById(id);
+const val=id=>($(id)?.value||"").trim();
+async function save(){try{await ref?.set(S)}catch(e){note="Could not sync: "+(e.message||e.code)}render()}
+function go(p,a){page=p;arg=a||null;note="";render();scrollTo(0,0)}
+function paid(a){return a.paidUntil&&a.paidUntil>Date.now()}
+function live(a){return a.status==="active"&&paid(a)}
+function nav(){
+ let l=`<a onclick="go('home')">Home</a><a onclick="go('plans')">Plans</a><a onclick="go('discover')">Find Artists</a>`;
+ if(!me)l+=`<a onclick="go('artistLogin')">Artist Login</a><a onclick="go('seekerAuth')">Seeker Login</a><a onclick="go('adminLogin')">Admin</a>`;
+ else{if(me.role==="artist")l+=`<a onclick="go('artistDash')">Dashboard</a><a onclick="go('upload')">Upload</a>`;
+  if(me.role==="seeker")l+=`<a onclick="go('requests')">My Requests</a>`;
+  if(me.role==="admin")l+=`<a onclick="go('admin')">Admin Panel</a>`;
+  l+=`<a onclick="me=null;go('home')">Logout (${esc(me.name)})</a>`}
+ $("hd").innerHTML=`<div class="logo" onclick="go('home')">${LOGO}Art 27</div>`+l}
+const P={
+home:()=>`<div class="hero"><h1>Your art. Your stage.<br>Zero commission.</h1><p>Art 27 is where artists of every kind — painters, caricaturists, musicians, actors, instrumentalists — publish for just ₹20/month, and where seekers hire them for events, free of charge.</p>
+<button class="btn" onclick="go('artistJoin')">I'm an Artist</button><button class="btn o" style="color:#fff;border-color:#666" onclick="go('seekerAuth')">I'm an Art Seeker</button></div>
+<h2 style="margin-top:28px">Featured art</h2><div class="grid">${artCards(S.arts.filter(x=>x.status==="approved"&&live(artist(x.artistId)||{})).slice(0,6))||'<p class="mut">No approved art yet — be the first to publish.</p>'}</div>`,
+plans:()=>`<h2>Simple pricing</h2><div class="grid"><div class="card"><h3>Artist</h3><h1 style="color:var(--red)">₹20<small class="mut" style="font-size:16px">/month</small></h1><p>Publish unlimited art, get visibility, receive hire requests. Aadhaar (or other national ID) verification required.</p></div>
+<div class="card"><h3>Art Seeker</h3><h1>Free</h1><p>Search artists, send hire requests for any event. No fees, no commission — ever.</p></div></div>
+<h2 style="margin-top:24px">How it works</h2><div class="card"><p>1. Artist signs up and submits ID details.<br>2. Admin verifies the ID, then the artist pays ₹20 via GPay/UPI QR.<br>3. Each upload is video-verified by the admin team before going public.<br>4. Seekers browse and hire directly.</p></div>`,
+artistJoin:()=>`<h2>Artist sign-up</h2><form onsubmit="return artistReg()"><label>Full name</label><input id="n" required><label>Email</label><input id="e" type="email" required><label>Password</label><input id="p" type="password" minlength="6" required>
+<label>Art category</label><select id="c">${CATS.map(c=>`<option>${c}</option>`)}</select><label>City</label><input id="ci" required><label>Short bio</label><textarea id="b" rows="3"></textarea>
+<label>National ID type</label><select id="t"><option>Aadhaar</option><option>Voter ID</option><option>Passport</option><option>Driving Licence</option></select>
+<label>ID number (only last 4 digits are stored)</label><input id="idn" required><div class="msg">Platform fee: ₹20/month, payable by UPI (GPay QR) only after the admin team verifies your ID.</div>
+<button class="btn">Register &amp; submit ID</button></form>${note?`<div class="msg">${esc(note)}</div>`:""}`,
+artistLogin:()=>loginForm("Artist login","artistDo","Not registered?","artistJoin"),
+seekerAuth:()=>`<div class="row" style="align-items:flex-start;gap:30px"><div class="box" style="flex:1">${loginForm("Seeker login","seekerDo")}</div>
+<form style="flex:1" onsubmit="return seekerReg()"><h2>New seeker</h2><label>Name</label><input id="n" required><label>Email</label><input id="e" type="email" required><label>Password</label><input id="p" type="password" minlength="6" required><button class="btn k">Create free account</button></form></div>`,
+discover:()=>{const q=(arg&&arg.q||"").toLowerCase(),c=arg&&arg.c||"";const L=S.artists.filter(a=>live(a)&&(!c||a.cat===c)&&(a.name+a.city+a.bio).toLowerCase().includes(q));
+ return `<h2>Find an artist</h2><div class="row"><input style="max-width:280px" id="q" placeholder="Search name, city…" value="${esc(arg&&arg.q||"")}"><select style="max-width:180px" id="cf"><option value="">All categories</option>${CATS.map(x=>`<option ${x===c?"selected":""}>${x}</option>`)}</select><button class="btn" onclick="go('discover',{q:val('q'),c:$('cf').value})">Search</button></div>
+ <div class="grid">${L.map(a=>`<div class="card"><div class="thumb">${ICON[a.cat]}</div><b>${esc(a.name)}</b> <span class="tag g">Verified</span><div class="mut">${esc(a.cat)} · ${esc(a.city)}</div><p>${esc(a.bio).slice(0,90)}</p><button class="btn" onclick="go('profile','${a.id}')">View &amp; Hire</button></div>`).join("")||'<p class="mut">No artists found.</p>'}</div>`},
+profile:()=>{const a=artist(arg);if(!a)return"<p>Not found.</p>";const w=S.arts.filter(x=>x.artistId===a.id&&x.status==="approved");
+ return `<h2>${esc(a.name)} <span class="tag g">Verified</span></h2><p class="mut">${esc(a.cat)} · ${esc(a.city)}</p><p>${esc(a.bio)}</p><h3>Portfolio</h3><div class="grid">${artCards(w)||'<p class="mut">No approved work yet.</p>'}</div>
+ <h3>Hire ${esc(a.name)} — free</h3>${me?.role==="seeker"?`<form onsubmit="return hire('${a.id}')"><label>Event / requirement</label><input id="ev" required><label>Date</label><input id="dt" type="date" required><label>Message</label><textarea id="ms" rows="3"></textarea><button class="btn">Send hire request</button></form>`:`<div class="msg">Please <a href="#" onclick="go('seekerAuth');return false">log in as a seeker</a> to hire.</div>`}${note?`<div class="msg">${esc(note)}</div>`:""}`},
+requests:()=>{const L=S.hires.filter(h=>h.seekerId===me.id);return `<h2>My hire requests</h2>${L.map(h=>`<div class="card" style="margin-bottom:10px"><b>${esc(h.event)}</b> · ${esc(h.date)} <span class="tag ${h.status==="accepted"?"g":"w"}">${h.status}</span><div class="mut">Artist: ${esc(artist(h.artistId)?.name)}</div>${h.status==="accepted"?`<div>Contact: ${esc(artist(h.artistId)?.email)}</div>`:""}</div>`).join("")||'<p class="mut">No requests yet.</p>'}<button class="btn" onclick="go('discover')">Find artists</button>`},
+artistDash:()=>{const a=artist(me.id);const h=S.hires.filter(x=>x.artistId===a.id);const ok=a.status==="active"&&paid(a),due=a.status==="verified"||(a.status==="active"&&!paid(a));
+ return `<h2>Dashboard</h2><div class="card"><b>Status:</b> <span class="tag ${ok?"g":"w"}">${due&&a.status==="active"?"Fee due":STAT[a.status]||a.status}</span>${a.status==="active"?` · Active until: ${new Date(a.paidUntil).toLocaleDateString()}`:""}<br>${ok?`<button class="btn k" onclick="go('upload')">Upload art</button>`:""}</div>
+ ${due?payCard(a):""}${a.status==="paysub"?`<div class="msg">Payment reference ${esc(a.payRef)} submitted. The admin will confirm it and activate your account.</div>`:""}${a.status==="pending"?`<div class="msg">Your ID is under review. Once verified, you will be asked to pay ₹20.</div>`:""}${a.status==="rejected"?`<div class="msg">Your ID verification was rejected. Please contact support.</div>`:""}
+ <h3>My uploads</h3><div class="grid">${S.arts.filter(x=>x.artistId===a.id).map(x=>`<div class="card"><b>${esc(x.title)}</b><br><span class="tag ${x.status==="approved"?"g":"w"}">${x.status}</span></div>`).join("")||'<p class="mut">Nothing yet.</p>'}</div>
+ <h3>Hire requests</h3>${h.map(x=>`<div class="card" style="margin-bottom:8px"><b>${esc(x.event)}</b> · ${esc(x.date)} · from ${esc(seeker(x.seekerId)?.name)}<p>${esc(x.msg)}</p>${x.status==="pending"?`<button class="btn" onclick="setHire('${x.id}','accepted')">Accept</button><button class="btn o" onclick="setHire('${x.id}','declined')">Decline</button>`:`<span class="tag">${x.status}</span>`}</div>`).join("")||'<p class="mut">None yet.</p>'}`},
+upload:()=>`<h2>Upload art</h2><form onsubmit="return upl()"><label>Title</label><input id="t" required><label>Type</label><select id="ty">${CATS.map(c=>`<option>${c}</option>`)}</select><label>Link to your work (YouTube, Drive, Instagram…)</label><input id="l" type="url" required><label>Description</label><textarea id="d" rows="3"></textarea>
+<div class="msg">Every upload is reviewed by the admin team through video verification before it goes public.</div><button class="btn">Submit for verification</button></form>${note?`<div class="msg">${esc(note)}</div>`:""}`,
+adminLogin:()=>`<h2>Admin login</h2><form onsubmit="return adminDo()"><label>Admin ID</label><input id="e" required><label>Password</label><input id="p" type="password" required><button class="btn k">Login</button></form>${note?`<div class="msg">${esc(note)}</div>`:""}`,
+admin:()=>{if(me?.role!=="admin")return"<p>Access denied.</p>";const pa=S.artists.filter(a=>a.status==="pending"),pr=S.arts.filter(x=>x.status==="pending");
+ return `<h2>Admin panel</h2><div class="grid"><div class="card">Artists<h1>${S.artists.length}</h1></div><div class="card">Seekers<h1>${S.seekers.length}</h1></div><div class="card">Monthly income<h1>₹${S.artists.filter(paid).length*20}</h1></div><div class="card">Hire requests<h1>${S.hires.length}</h1></div></div>
+ <div class="card"><h3>Payment settings</h3><label>Your UPI ID (e.g. name@okaxis) — used for the QR code and GPay link</label><input id="upi" value="${esc(S.settings.upi||"")}" placeholder="yourname@bank"><button class="btn k" onclick="setUpi()">Save UPI ID</button></div>
+ <h3>Artists awaiting ID verification (${pa.length})</h3>${pa.map(a=>`<div class="card" style="margin-bottom:8px"><b>${esc(a.name)}</b> · ${esc(a.cat)} · ${esc(a.city)}<br>${esc(a.idType)} ending <b>${esc(a.idLast4)}</b> · ${esc(a.email)}<br><button class="btn" onclick="setArtist('${a.id}','verified')">Verify ID</button><button class="btn o" onclick="setArtist('${a.id}','rejected')">Reject</button></div>`).join("")||'<p class="mut">None.</p>'}
+ <h3>Payments awaiting confirmation (${S.artists.filter(a=>a.status==="paysub").length})</h3>${S.artists.filter(a=>a.status==="paysub").map(a=>`<div class="card" style="margin-bottom:8px"><b>${esc(a.name)}</b> · ₹20 · UTR <b>${esc(a.payRef)}</b><div class="mut">Match this UTR in your GPay/bank statement, then confirm.</div><button class="btn" onclick="setPay('${a.id}',true)">Confirm payment</button><button class="btn o" onclick="setPay('${a.id}',false)">Reject</button></div>`).join("")||'<p class="mut">None.</p>'}
+ <h3>Art awaiting video verification (${pr.length})</h3>${pr.map(x=>`<div class="card" style="margin-bottom:8px"><b>${esc(x.title)}</b> (${esc(x.type)}) by ${esc(artist(x.artistId)?.name)}<p>${esc(x.desc)}</p><a href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open video ↗</a><br><button class="btn" onclick="setArt('${x.id}','approved')">Approve</button><button class="btn o" onclick="setArt('${x.id}','rejected')">Reject</button></div>`).join("")||'<p class="mut">None.</p>'}`}
+};
+function loginForm(t,fn,alt,to){return `<h2>${t}</h2><form onsubmit="return ${fn}()"><label>Email</label><input id="e" type="email" required><label>Password</label><input id="p" type="password" required><button class="btn k">Login</button></form>${alt?`<p class="mut">${alt} <a href="#" onclick="go('${to}');return false">Sign up</a></p>`:""}${note?`<div class="msg">${esc(note)}</div>`:""}`}
+function artCards(L){return L.map(x=>`<div class="card"><div class="thumb">${ICON[x.type]||"✨"}</div><b>${esc(x.title)}</b><div class="mut">${esc(x.type)} · ${esc(artist(x.artistId)?.name)}</div><a href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Watch / view ↗</a></div>`).join("")}
+const STAT={pending:"ID under review",verified:"ID verified – payment due",paysub:"Payment under confirmation",active:"Active",rejected:"Rejected"};
+function upiLink(a){const u=S.settings.upi;return u?"upi://pay?pa="+encodeURIComponent(u)+"&pn=Art%2027&am=20&cu=INR&tn="+encodeURIComponent("Art27 fee "+a.id):""}
+function payCard(a){const l=upiLink(a);return `<div class="card" style="margin-top:12px;border-left:6px solid var(--red)"><h3>Pay ₹20 platform fee</h3>${l?`<div class="row" style="align-items:flex-start;gap:20px"><div id="qr" data-l="${esc(l)}" style="background:#fff;padding:8px;border-radius:8px;min-width:196px;min-height:196px"></div><div style="flex:1;min-width:220px"><p>Scan with GPay, PhonePe, Paytm or any UPI app. On mobile, tap:</p><a class="btn" href="${esc(l)}">Pay with GPay / UPI app</a><p class="mut">UPI ID: ${esc(S.settings.upi)} · Amount: ₹20</p></div></div><form onsubmit="return paySub()"><label>After paying, enter the 12-digit UPI transaction ID (UTR)</label><input id="utr" required inputmode="numeric" pattern="[0-9]{12}"><button class="btn k">Submit payment reference</button></form>`:'<p class="mut">Payment details are not set up yet. Please check back soon.</p>'}${note?`<div class="msg">${esc(note)}</div>`:""}</div>`}
+function paySub(){const a=artist(me.id),u=val("utr");if(!/^[0-9]{12}$/.test(u)){note="Enter a valid 12-digit UTR.";render();return false}if(S.artists.some(x=>x.payRef===u&&x.id!==a.id)){note="This reference was already used.";render();return false}a.payRef=u;a.status="paysub";save();return false}
+function setPay(i,ok){const a=artist(i);if(ok){a.status="active";a.paidUntil=Math.max(Date.now(),a.paidUntil||0)+MONTH}else{a.status="verified";a.payRef=""}save()}
+function setUpi(){S.settings.upi=val("upi");save()}
+const artist=id=>S.artists.find(a=>a.id===id),seeker=id=>S.seekers.find(a=>a.id===id);
+const MONTH=30*864e5;
+function artistReg(){const email=val("e").toLowerCase();if(S.artists.some(a=>a.email===email)){note="Email already registered.";render();return false}
+ const d=val("idn").replace(/\s/g,"");if(val("t")==="Aadhaar"&&!/^\d{12}$/.test(d)){note="Aadhaar must be 12 digits.";render();return false}
+ const a={id:uid(),name:val("n"),email,pw:val("p"),cat:val("c"),city:val("ci"),bio:val("b"),idType:val("t"),idLast4:d.slice(-4),paidUntil:0,status:"pending"};
+ S.artists.push(a);me={role:"artist",id:a.id,name:a.name};save();go("artistDash");return false}
+function artistDo(){const a=S.artists.find(x=>x.email===val("e").toLowerCase()&&x.pw===val("p"));if(!a){note="Wrong email or password.";render();return false}me={role:"artist",id:a.id,name:a.name};go("artistDash");return false}
+function seekerReg(){const email=val("e").toLowerCase();if(S.seekers.some(a=>a.email===email)){note="Email already registered.";render();return false}
+ const s={id:uid(),name:val("n"),email,pw:val("p")};S.seekers.push(s);me={role:"seeker",id:s.id,name:s.name};save();go("discover");return false}
+function seekerDo(){const a=S.seekers.find(x=>x.email===val("e").toLowerCase()&&x.pw===val("p"));if(!a){note="Wrong email or password.";render();return false}me={role:"seeker",id:a.id,name:a.name};go("discover");return false}
+function adminDo(){if(val("e")===ADMIN.id&&$("p").value===ADMIN.pw){me={role:"admin",id:"admin",name:"Admin"};go("admin")}else{note="Invalid admin credentials.";render()}return false}
+function upl(){const a=artist(me.id);if(!live(a)){note="Your account must be verified and fee paid before uploading.";render();return false}
+ S.arts.push({id:uid(),artistId:a.id,title:val("t"),type:val("ty"),link:val("l"),desc:val("d"),status:"pending"});save();go("artistDash");return false}
+function hire(aid){S.hires.push({id:uid(),seekerId:me.id,artistId:aid,event:val("ev"),date:val("dt"),msg:val("ms"),status:"pending"});save();go("requests");return false}
+function renew(){const a=artist(me.id);a.paidUntil=Math.max(Date.now(),a.paidUntil||0)+MONTH;save()}
+const setHire=(i,s)=>{S.hires.find(h=>h.id===i).status=s;save()},setArtist=(i,s)=>{artist(i).status=s;save()},setArt=(i,s)=>{S.arts.find(x=>x.id===i).status=s;save()};
+function render(){nav();const el=document.activeElement;if(el&&/INPUT|TEXTAREA|SELECT/.test(el.tagName)&&el.value)return;$("app").innerHTML=(P[page]||P.home)();const q=$("qr");if(q&&window.QRCode)new QRCode(q,{text:q.dataset.l,width:180,height:180})}
+render();
+(async()=>{try{const db=await claude.use("db");if(!db)return;ref=db.doc("app/state");ref.onSnapshot(s=>{const d=s.data();if(d){S={artists:[],seekers:[],arts:[],hires:[],...d,settings:d.settings||{}}}render()})}catch(e){}})();
+</script></body></html>
